@@ -380,6 +380,7 @@ int main()
    cout << sinhNhatBRO3 << " -> " << --sinhNhatBRO3 << " -> " << sinhNhatBRO3 << endl;
 
    // BÀI TOÁN TÍNH TIỀN LÃI
+   cout << "--------------Tính tiền lãi suất ngân hàng dựa vào CDate----------------" << endl;
 
    // Quy ước: lãi suất ngân hàng: 2,3% / năm
    const float laiSuatNganHang = 2.3;
