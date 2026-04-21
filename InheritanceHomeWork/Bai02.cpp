@@ -391,3 +391,97 @@ class GIAOKHOA : public SACH
     }
 };
 
+class THAMKHAO : public SACH
+{
+    private:
+    static float phanTramThue;
+    long long thanhTien;
+
+    public:
+    THAMKHAO(float pt = 0.0f) : SACH(), thanhTien(0)
+    {
+        setPhanTramThue(pt);
+    };
+
+    static void setPhanTramThue(float pt)
+    {
+        if(pt < 0 || pt > 100)
+        {
+            throw invalid_argument("Lỗi: Phần trăm thuế không hợp lệ.");
+        }
+        phanTramThue = pt;
+    }
+    static float getPhanTramThue()
+    {
+        return phanTramThue;
+    }
+
+    // Tính thành tiền
+    void tinhThanhTien() override
+    {
+        // TODO: Cập nhật `thanhTien` dựa trên số lượng, đơn giá và phần trăm thuế.
+        thanhTien = 0;
+    }
+
+    // Thành tiền
+    long long getThanhTien() override
+    {
+        // TODO: Trả về giá trị `thanhTien` sau khi đã tính.
+        return thanhTien;
+    }
+
+    // Nhập thông tin
+    void NhapThongTin() override
+    {
+        string ms;
+        int day, month, year;
+        long dg;
+        int sl;
+        string nxb;
+        float pt;
+
+        cout << "Mã sách: "; cin >> ms;
+        cout << "Ngày nhập (ngày tháng năm): "; cin >> day >> month >> year;
+        cout << "Đơn giá: "; cin >> dg;
+        cout << "Số lượng(1 - 300): "; cin >> sl;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Tên nhà xuất bản: "; getline(cin, nxb);
+        cout << "Phần trăm thuế: "; cin >> pt;
+
+        setMaSach(ms);
+        setNgayNhap(day,month,year);
+        setDonGia(dg);
+        setSoLuong(sl);
+        setNXB(nxb);
+        setPhanTramThue(pt);
+    };
+
+    void cinOverload(istream& in) override
+    {
+        SACH::cinOverload(in);
+
+        float pt;
+        cout << "Phần trăm thuế: "; in >> pt;
+        setPhanTramThue(pt);
+    }
+
+    void XuatThongTin() override
+    {
+        cout << "Mã sách: " << getMaSach() << endl;
+        cout << "Ngày nhập: " << getNgayNhap() << endl;
+        cout << "Đơn giá: " << getDonGia() << "vnd" << endl;
+        cout << "Số lượng: " << getSoLuong() << " cuốn" << endl;
+        cout << "Nhà xuất bản:  " << getNXB() << endl;
+        cout << "Phần trăm thuế: " << getPhanTramThue() << "%" << endl;
+        cout << "----------> Thành tiền: " << getThanhTien() << "vnd" << endl;
+    }
+
+    void coutOverload(ostream& out) override
+    {
+        SACH::coutOverload(out);
+        out << "Phần trăm thuế: " << phanTramThue << "%" << endl;
+        out << "----------> Thành tiền: " << thanhTien << "vnd" << endl;
+    }
+};
+
+float THAMKHAO::phanTramThue = 0.0f;
