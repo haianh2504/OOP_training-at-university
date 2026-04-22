@@ -126,6 +126,14 @@ class Date
     }
 };
 
+// Cột mốc cố định để dễ bảo trì code
+const long long MIN_LUONG = 5000000;
+const long long MAX_LUONG = 6000000;
+const int MIN_SANPHAM = 0;
+const int MAX_SANPHAM = 200;\
+const int MIN_DONGIA = 1000;
+const int MAX_DONGIA = 10000;
+
 // NHÂN VIÊN - ABSTRACT CLASS
 class NHANVIEN
 {
@@ -157,7 +165,7 @@ class NHANVIEN
     {
         hoTen = newName;
     };
-    string getHoTen()
+    string getHoTen() const
     {
         return hoTen;
     };
@@ -165,16 +173,15 @@ class NHANVIEN
     void setNgaySinh(int day, int month, int year)
     {
         ngaySinh.dateValid(day, month, year);
-        // có cần phải try catch ở đây luôn không
     }
-    Date getNgaySinh()
+    Date getNgaySinh() const
     {
         return ngaySinh;
     }
     // tính lương
     virtual void tinhLuong() = 0;
     // get lương
-    virtual long long getLuong() = 0;
+    virtual long long getLuong() const = 0;
     // destructor
     virtual ~NHANVIEN(){};
 };
@@ -202,19 +209,19 @@ class SANXUAT : public NHANVIEN
     // hàm logic xét tính hợp lệ của dữ liệu
     void duLieuHopLe(long long lcb, int ssp)
     {
-        if((5000000 <= lcb && lcb <= 6000000) && (0 <= ssp && ssp <= 200) ) // 5 triệu -> 6 triệu vnd / 1 -> 200 sản phẩm tối đa trong thời gian cố định
+        if((MIN_LUONG <= lcb && lcb <= MAX_LUONG) && (MIN_SANPHAM <= ssp && ssp <= MAX_SANPHAM) ) // 5 triệu -> 6 triệu vnd / 1 -> 200 sản phẩm tối đa trong thời gian cố định
         {
             luongCanBan = lcb;
             soSanPham = ssp;
         }
         else
         {
-            if(lcb < 5000000 || lcb > 6000000)
+            if(lcb < MIN_LUONG || lcb > MAX_LUONG)
             {
                 throw invalid_argument("Lỗi: Dữ liệu nhân viên không hợp lệ. ( !lương cơ bản )");
             }
             
-            if(ssp < 0 || ssp > 100)
+            if(ssp < MIN_SANPHAM || ssp > MAX_SANPHAM)
             {
                 throw invalid_argument("Lỗi: Dữ liệu nhân viên không hợp lệ. ( !số sản phẩm )");
             }
@@ -224,7 +231,7 @@ class SANXUAT : public NHANVIEN
     // Đơn giá 1 sản phẩm ( chung )
     static void setDonGiaSanPham(int newNumber)
     {
-        if(5000 <= newNumber && newNumber <= 10000)
+        if(MIN_DONGIA <= newNumber && newNumber <= MAX_DONGIA)
         {
             donGiaSanPham = newNumber;
         }
@@ -237,18 +244,18 @@ class SANXUAT : public NHANVIEN
     // Lương căn bản
     bool setLuongCanBan(long long lcb)
     {
-        if((5000000 <= lcb && lcb <= 6000000)) // 5 triệu -> 6 triệu vnd
+        if((MIN_LUONG <= lcb && lcb <= MAX_LUONG)) // 5 triệu -> 6 triệu vnd
         {
             luongCanBan = lcb;
             return true;
         }
         else
         {
-            cout << "Lỗi: Cập nhật lương căn bản không thành công ( chỉ được giao động 5 triệu -> 6 triệu )" << endl;
+            cout << "Lỗi: Cập nhật lương căn bản không thành công ( chỉ được giao động " << MIN_LUONG << " -> " << MAX_LUONG << " )" << endl;
             return false;
         }
     }
-    long long getLuongCanBan()
+    long long getLuongCanBan() const
     {
         return luongCanBan;
     }
@@ -266,7 +273,7 @@ class SANXUAT : public NHANVIEN
          return false;
         }
     }
-    int getSoSanPham()
+    int getSoSanPham() const
     {
         return soSanPham;
     }
@@ -275,7 +282,7 @@ class SANXUAT : public NHANVIEN
     {
         tongLuong = luongCanBan + soSanPham*donGiaSanPham;
     }
-    long long getLuong() override
+    long long getLuong() const override
     {
         if(tongLuong != -1) return tongLuong;
         return 0;
@@ -287,14 +294,16 @@ class SANXUAT : public NHANVIEN
         NHANVIEN::nhapThongTin();
         long long lcb;
         int ssp;
-        cout << "Lương căn bản: "; cin >> lcb;
-        cout << "Số sản phẩm đóng góp: "; cin >> ssp;
         // kiểm tra tính đúng đắn dữ liệu
-        if(setLuongCanBan(lcb) && setSoSanPham(ssp))
+        do{
+            cout << "Lương căn bản: "; cin >> lcb;
+        }while(!setLuongCanBan(lcb));
+        do
         {
-            // tính lại lương
-            tinhLuong();
-        };
+            cout << "Số sản phẩm đóng góp: "; cin >> ssp;
+        }while(!setSoSanPham(ssp));
+        // tính lại lương
+        tinhLuong();
     };
     // Xuất thông tin
     void xuatThongTin() override
@@ -315,7 +324,7 @@ class VANPHONG : public NHANVIEN
     private:
     int soNgayLamViec = 0;
     static int donGiaMotNgayLamViec;
-    long long tongLuong;
+    long long tongLuong = 0;
 
     public:
     // constructor
@@ -360,7 +369,7 @@ class VANPHONG : public NHANVIEN
         cout << "Lỗi: Cập nhật số ngày làm việc không thành công ( từ 1 -> 31 ngày tối đa )" << endl; 
         return false;
     }
-    int getSoNgayLamViec()
+    int getSoNgayLamViec() const
     {
         return soNgayLamViec;
     }
@@ -369,7 +378,7 @@ class VANPHONG : public NHANVIEN
     {
         tongLuong = static_cast<long long>(donGiaMotNgayLamViec)*soNgayLamViec;
     }
-    long long getLuong() override
+    long long getLuong() const override
     {
         if(tongLuong == -1)
         {
@@ -382,14 +391,14 @@ class VANPHONG : public NHANVIEN
     {
         cout << "===== Nhân Viên VĂN PHÒNG ==" << endl;
         NHANVIEN::nhapThongTin();
-        long long snlv;
-        cout << "Số ngày làm việc: "; cin >> snlv;
+        int snlv;
         // kiểm tra tính đúng đắn dữ liệu
-        if(setSoNgayLamViec(snlv))
+        do
         {
-            // tính lại lương
-            tinhLuong();
-        };
+            cout << "Số ngày làm việc: "; cin >> snlv;
+        }while(!setSoNgayLamViec(snlv));
+        // tính lại lương
+        tinhLuong();
     };
     // Xuất thông tin
     void xuatThongTin() override
@@ -414,12 +423,12 @@ int main()
     vector<NHANVIEN*> VanPhong;
 
     // NHÂN VIÊN SẢN XUẤT - NHẬP
-    int sxSize;
+    size_t sxSize;
     cout << "Số lượng nhân viên sản xuất: "; cin >> sxSize;
     if(sxSize > 0)
     {
         cout << "=== Nhân viên sản xuất ===" << endl;
-        for(int i = 0; i < sxSize; i++)
+        for(size_t i = 0; i < sxSize; i++)
         {
             NHANVIEN* nvsx = new SANXUAT();
             cout << "Nhân viên " << i + 1 << ":" << endl;
@@ -433,12 +442,12 @@ int main()
     }
 
     // NHÂN VIÊN VĂN PHÒNG - NHẬP
-    int vpSize;
+    size_t vpSize;
     cout << "Số lượng nhân viên văn phòng: "; cin >> vpSize;
     if(sxSize > 0)
     {
         cout << "=== Nhân viên văn phòng ===" << endl;
-        for(int i = 0; i < vpSize; i++)
+        for(size_t i = 0; i < vpSize; i++)
         {
             NHANVIEN* nvvp = new VANPHONG();
             cout << "Nhân viên " << i + 1 << ":" << endl;
@@ -453,14 +462,14 @@ int main()
 
     // XUẤT THÔNG TIN DANH SÁCH CÁC NHÂN VIÊN
     cout << "=== DANH SÁCH nhân viên sản xuất ===" << endl;
-    for(int i = 0; i < sxSize; i++)
+    for(size_t i = 0; i < sxSize; i++)
     {
         cout << "Nhân viên " << i + 1 << ": " << endl;
         SanXuat[i]->xuatThongTin();
     };
 
     cout << "=== DANH SÁCH nhân viên văn phòng ===" << endl;
-    for(int i = 0; i < vpSize; i++)
+    for(size_t i = 0; i < vpSize; i++)
     {
         cout << "Nhân viên " << i + 1 << ": " << endl;
         VanPhong[i]->xuatThongTin();
@@ -468,11 +477,11 @@ int main()
 
     // TÍNH TỔNG LƯƠNG MÀ CÔNG TY PHẢI CHI TRẢ
     long long tongluongctychitra = 0;
-    for(int i = 0; i < sxSize; i++)
+    for(size_t i = 0; i < sxSize; i++)
     {
         tongluongctychitra += SanXuat[i]->getLuong();
     };
-    for(int i = 0; i < vpSize; i++)
+    for(size_t i = 0; i < vpSize; i++)
     {
         tongluongctychitra += VanPhong[i]->getLuong();
     };
@@ -487,7 +496,16 @@ int main()
         cout << fixed << setprecision(2) << tongluongrutgon << endl;
     }
     // delete hai danh sách
-    
+    for(size_t i = 0; i < sxSize; i++)
+    {
+        delete SanXuat[i];    
+    };
+    SanXuat.clear();
+    for(size_t i = 0; i < vpSize; i++)
+    {
+        delete SanXuat[i];
+    };
+    VanPhong.clear();
 
 
 
