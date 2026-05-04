@@ -9,6 +9,12 @@
 #include <limits>
 #include <algorithm>
 #include <vector>
+#include <clocale>
+#include <locale>
+#include <memory>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 using namespace std;
 // Hàm xóa khoảng trắng ở đầu chuỗi (Left Trim)
 string ltrim(const string &s) {
@@ -140,9 +146,7 @@ class Date
         // Quy ước: D1 là currentDate
         int tongNgayD1 = YearGap(D1);
         int tongNgayD2 = YearGap(D2);
-        if(tongNgayD1 < tongNgayD2) return -abs(tongNgayD1 - tongNgayD2);
         return abs(tongNgayD1 - tongNgayD2);
-
     }
     // destructor
     ~Date(){};
@@ -193,19 +197,20 @@ class NhanVien
     // Destructor
     virtual ~NhanVien() = 0;
 };
+NhanVien::~NhanVien(){};
 // SẢN XUẤT
 class SanXuat : public NhanVien
 {
     private:
-    long long luongCanBan = 0;
-    int soSanPham = 0;
-    int donGiaSP = 0;
+    long long luongCanBan = MIN_LuongCanBan;
+    int soSanPham = MIN_SoSanPham;
+    int donGiaSP = MIN_DonGiaSP;
     // static
     // Lương căn bản
     static const long long MIN_LuongCanBan = 5000000;
     static const long long MAX_LuongCanBan = 8000000;
     // Số sản phẩm
-    static const int MIN_SoSanPham = 0;
+    static const int MIN_SoSanPham = 1;
     static const int MAX_SoSanPham = 100;
     // Đơn giá sản phẩm
     static const int MIN_DonGiaSP = 50000;
@@ -271,7 +276,7 @@ class SanXuat : public NhanVien
         luong = luongCanBan + soSanPham*donGiaSP;
     }
     long long GetLuong()const override{
-        if(luongCanBan == 0) throw runtime_error("Lỗi: Lương chưa cập nhật");
+        if(luong == 0) throw runtime_error("Lỗi: Lương chưa cập nhật");
         else return luong;
     }
     // Nhập thông tin
@@ -288,6 +293,7 @@ class SanXuat : public NhanVien
         cout << "Ngày: "; cin >> ngay;
         cout << "Tháng: "; cin >> thang;
         cout << "Năm: "; cin >> nam;
+        cout << "Lương căn bản: "; cin >> luong_canBan;
         cout << "Số sản phẩm làm được: "; cin >> so_sanPham;
         cout << "Đơn giá 1 sản phẩm: "; cin >> donGia_sanPham;
         // kiểm tra tính hợp lệ
@@ -298,6 +304,7 @@ class SanXuat : public NhanVien
         // gán giá trị
         SetHoTen(ho_ten);
         ngaySinh.SetDate(ngay, thang, nam);
+        SetLuongCanBan(luong_canBan);
         SetSoSanPham(so_sanPham);
         SetDonGiaSP(donGia_sanPham);
         // Tính lương
@@ -320,15 +327,15 @@ class SanXuat : public NhanVien
 class VanPhong : public NhanVien
 {
     private:
-    int soNgayLamViec = 0;
-    int luongNgay = 0;
+    int soNgayLamViec = MIN_SoNgayLamViec;
+    int luongNgay = MIN_LuongNgay;
     // static
     // Số ngày làm việc
-    static const int MIN_SoNgayLamViec = 0;
+    static const int MIN_SoNgayLamViec = 1;
     static const int MAX_SoNgayLamViec = 31;
     // Lương ngày
-    static const int MIN_LuongNgay = 0;
-    static const int MAX_LuongNgay = 1000000;
+    static const int MIN_LuongNgay = 100000;
+    static const int MAX_LuongNgay = 3000000;
     // Hàm kiểm tra logic
     static bool isValidInfo(int so_NgayLamViec, int luong_Ngay)
     {
@@ -377,7 +384,7 @@ class VanPhong : public NhanVien
         luong = soNgayLamViec*luongNgay;
     }
     long long GetLuong()const override{
-        if(luongNgay == 0) throw runtime_error("Lỗi: Lương chưa cập nhật");
+        if(luong == 0) throw runtime_error("Lỗi: Lương chưa cập nhật");
         else return luong;
     }
     // Nhập thông tin
@@ -423,75 +430,93 @@ class VanPhong : public NhanVien
 
 int main()
 {
-    vector<NhanVien*> danhSachNhanVienVanPhong;
-    vector<NhanVien*> danhSachNhanVienSanXuat;
+    // Testing bắt đầu
+    vector<unique_ptr<NhanVien>> danhSachNhanVienVanPhong;
+    vector<unique_ptr<NhanVien>> danhSachNhanVienSanXuat;
     int soNhanVienVanPhong, soNhanVienSanXuat;
+    // Nhập thông tin nhân viên văn phòng
     cout << "Nhập số nhân viên văn phòng: "; cin >> soNhanVienVanPhong;
-    for(size_t i = 0; i < soNhanVienVanPhong; i++)
+    if(soNhanVienVanPhong < 0)
+    {
+        cerr << "Lỗi: số nhân viên không hợp lệ." << endl;
+        return -1;
+    }
+    for(int i = 0; i < soNhanVienVanPhong; i++)
     {
         cout << "Nhập thông tin nhân viên văn phòng thứ " << i + 1 << ":" << endl;
-        NhanVien* nvvp = new VanPhong("Không xác định", Date(1,1,2000),0,0);
+        auto nvvp = make_unique<VanPhong>("Không xác định", Date(1,1,2000),0,0);
         try
         {
             nvvp->nhapThongTin();
-            danhSachNhanVienVanPhong.push_back(nvvp);
+            danhSachNhanVienVanPhong.push_back(move(nvvp));
         }
         catch(const exception& e)
         {
             cerr << e.what() << endl;
-            delete nvvp; // Giải phóng bộ nhớ nếu có lỗi
             i--;
         }
     }
+    // Nhập thông tin nhân viên sản xuất
     cout << "Nhập số nhân viên sản xuất: "; cin >> soNhanVienSanXuat;
-    for(size_t i = 0; i < soNhanVienSanXuat; i++)
+    if(soNhanVienSanXuat < 0)
+    {
+        cerr << "Lỗi: số nhân viên không hợp lệ." << endl;
+        return -1;
+    }
+    for(int i = 0; i < soNhanVienSanXuat; i++)
     {
         cout << "Nhập thông tin nhân viên sản xuất thứ " << i + 1 << ":" << endl;
-        NhanVien* nvsp = new SanXuat("Không xác định", Date(1,1,2000),0,0,0);
+        auto nvsp = make_unique<SanXuat>("Không xác định", Date(1,1,2000), 5000000, 0, 50000);
         try
         {
             nvsp->nhapThongTin();
-            danhSachNhanVienSanXuat.push_back(nvsp);
+            danhSachNhanVienSanXuat.push_back(move(nvsp));
         }
         catch(const exception& e)
         {
             cerr << e.what() << endl;
-            delete nvsp; // Giải phóng bộ nhớ nếu có lỗi
             i--;
         }
     };
     // Xuất thông tin nhân viên văn phòng
     cout << "\nThông tin nhân viên văn phòng:" << endl;
-    for(size_t i = 0; i < danhSachNhanVienVanPhong.size(); i++)
+    for(int i = 0; i < danhSachNhanVienVanPhong.size(); i++)
     {
         cout << "Nhân viên văn phòng thứ " << i + 1 << ":" << endl;
         danhSachNhanVienVanPhong[i]->xuatThongTin();
     }
     // Xuất thông tin nhân viên sản xuất
     cout << "\nThông tin nhân viên sản xuất:" << endl;
-    for(size_t i = 0; i < danhSachNhanVienSanXuat.size(); i++)
+    for(int i = 0; i < danhSachNhanVienSanXuat.size(); i++)
     {
         cout << "Nhân viên sản xuất thứ " << i + 1 << ":" << endl;
         danhSachNhanVienSanXuat[i]->xuatThongTin();
     }
     // tính tổng lương phải trả cho nhân viên văn phòng
     long long tongLuongVanPhong = 0;
-    for(size_t i = 0; i < danhSachNhanVienVanPhong.size(); i++)
+    for(int i = 0; i < danhSachNhanVienVanPhong.size(); i++)
     {
         tongLuongVanPhong += danhSachNhanVienVanPhong[i]->GetLuong();
     }
     cout << "\nTổng lương phải trả cho nhân viên văn phòng: " << tongLuongVanPhong << endl;
-    // Nhân viên sản xuất có lương thấp nhất
-    NhanVien* nvLuongThapNhat = danhSachNhanVienSanXuat[0];
-    for(size_t i = 0; i < danhSachNhanVienSanXuat.size(); i++)
+    // Nhân viên sản xuất có lương thấp 
+    // guard clause
+    if(danhSachNhanVienSanXuat.empty())
+    {
+        cout << "\nKhông có nhân viên sản xuất nào để xác định lương thấp nhất." << endl;
+        return 0;
+    }
+    NhanVien* nvLuongThapNhat = danhSachNhanVienSanXuat[0].get();
+    for(int i = 0; i < danhSachNhanVienSanXuat.size(); i++)
     {
         if(danhSachNhanVienSanXuat[i]->GetLuong() < nvLuongThapNhat->GetLuong())
         {
-            nvLuongThapNhat = danhSachNhanVienSanXuat[i];
+            nvLuongThapNhat = danhSachNhanVienSanXuat[i].get();
         }
     }
     cout << "\nNhân viên sản xuất có lương thấp nhất:" << endl;
     nvLuongThapNhat->xuatThongTin();
+
     // Nhân viên văn phòng cao tuổi nhất
     Date currDate(4,5,2026);
     // guard clause
@@ -501,8 +526,8 @@ int main()
         return 0;
     }
     // NẾU CÓ NHÂN VIÊN VĂN PHÒNG, TIẾP TỤC XÁC ĐỊNH NHÂN VIÊN CAO TUỔI NHẤT
-    NhanVien* nvCaoTuoiNhat = danhSachNhanVienVanPhong[0];
-    for(size_t i = 1; i < danhSachNhanVienVanPhong.size(); i++)
+    NhanVien* nvCaoTuoiNhat = danhSachNhanVienVanPhong[0].get();
+    for(int i = 1; i < danhSachNhanVienVanPhong.size(); i++)
     {
         Date theOldest = nvCaoTuoiNhat->GetNgaySinh();
         int oldestAge = theOldest.YearGapBetween(theOldest, currDate);
@@ -510,21 +535,13 @@ int main()
         int currentAge = current.YearGapBetween(current, currDate);
         if(currentAge > oldestAge)
         {
-            nvCaoTuoiNhat = danhSachNhanVienVanPhong[i];
+            nvCaoTuoiNhat = danhSachNhanVienVanPhong[i].get();
         }
     }
     cout << "\nNhân viên văn phòng cao tuổi nhất:" << endl;
     nvCaoTuoiNhat->xuatThongTin();
     // giải phóng bộ nhớ
-    for(int i = 0; i < soNhanVienVanPhong; i++)
-    {
-        delete danhSachNhanVienVanPhong[i];
-    }
     danhSachNhanVienVanPhong.clear();
-    for(int i = 0; i < soNhanVienSanXuat; i++)
-    {
-        delete danhSachNhanVienSanXuat[i];
-    }
     danhSachNhanVienSanXuat.clear();
 
     return 0;
